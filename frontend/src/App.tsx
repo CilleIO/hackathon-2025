@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
-import EventModal from './EventModal'; // Import the modal
+import EventModal from './EventModal';
 
-// Define the Event type
+//Define event with its qualities
 interface Event {
   id: string;
   title: string;
@@ -66,7 +66,7 @@ function App() {
       </main>
 
       <EventModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onEventAdded={fetchEvents} />
-    </div>
+  </div>
   );
 }
 
