@@ -19,13 +19,13 @@ hackathon/
 │   ├── main.py              # FastAPI backend
 │   └── requirements.txt     # Python dependencies
 ├── frontend/
-│   ├── public/
-│   │   └── index.html       # HTML template
+│   ├── index.html           # HTML template for Vite
 │   ├── src/
 │   │   ├── App.tsx         # Main React component
 │   │   ├── App.css         # Styling
 │   │   └── index.tsx       # React entry point
 │   └── package.json        # Node.js dependencies
+│   └── vite.config.ts     # Vite configuration
 └── README.md              # This file
 ```
 
@@ -70,7 +70,7 @@ hackathon/
 
 3. Start the development server:
    ```bash
-   npm start
+   npm run dev
    ```
 
    The app will be available at `http://localhost:3000`

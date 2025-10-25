@@ -10,6 +10,7 @@ from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.parse
 import uuid
+import cgi
 
 # Configuration
 PORT = 8000
@@ -59,17 +60,35 @@ class BulletinHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Handle POST requests"""
         if self.path == "/events":
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
+            # Parse multipart/form-data
+            form = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={'REQUEST_METHOD': 'POST',
+                         'CONTENT_TYPE': self.headers['Content-Type']}
+            )
             
-            # Parse form data
-            form_data = urllib.parse.parse_qs(post_data.decode())
-            
-            # Extract event data
-            title = form_data.get('title', [''])[0]
-            description = form_data.get('description', [''])[0]
-            event_date = form_data.get('event_date', [''])[0]
-            location = form_data.get('location', [''])[0]
+            # Extract event data from text fields
+            title = form.getvalue('title', '')
+            description = form.getvalue('description', '')
+            event_date = form.getvalue('event_date', '')
+            location = form.getvalue('location', '')
+
+            # --- Handle the file upload ---
+            poster_url = None
+            if 'poster' in form and form['poster'].filename:
+                file_item = form['poster']
+                
+                # IMPORTANT: You must decide where to save files.
+                # For a hackathon, saving to a folder is fine.
+                # Ensure an 'uploads' folder exists!
+                upload_path = f"uploads/{file_item.filename}"
+                
+                with open(upload_path, 'wb') as f:
+                    f.write(file_item.file.read())
+                
+                # This URL assumes you are serving the 'uploads' folder
+                poster_url = f"/{upload_path}"
             
             if not all([title, description, event_date, location]):
                 self.send_response(400)
@@ -87,7 +106,7 @@ class BulletinHandler(BaseHTTPRequestHandler):
                 "description": description,
                 "event_date": event_date,
                 "location": location,
-                "poster_url": None,
+                "poster_url": poster_url,
                 "created_at": datetime.now().isoformat()
             }
             
