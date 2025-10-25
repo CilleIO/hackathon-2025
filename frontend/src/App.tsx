@@ -38,16 +38,16 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>BC Digital Bulletin Board</h1>
+        <h1>EagleBoard</h1>
         <button className="add-event-btn" onClick={() => setIsModalOpen(true)}>
-          + Add Event
+          Add Event
         </button>
       </header>
       
       <main className="billboard">
         {events.length === 0 ? (
           <div className="no-events">
-            <h2>Welcome to BC Digital Bulletin Board!</h2>
+            <h2>Welcome to EagleBoard!</h2>
             <p>Click "Add Event" to get started.</p>
           </div>
         ) : (

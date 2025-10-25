@@ -40,7 +40,6 @@ def get_events():
     
     for event in events:
         try:
-            #Assuming event_date is ISO format
             event_dt = datetime.fromisoformat(event['event_date'].replace('Z', '+00:00'))
 
             if event_dt > now:
@@ -69,7 +68,7 @@ def save_event(event):
 @app.get("/")
 def root():
     #Shows current version for user
-    return {"message": "BC Digital Bulletin Board", "version": "1.0.0"}
+    return {"message": "EagleBoard", "version": "1.0.0"}
 
 
 @app.get("/events")
@@ -127,7 +126,7 @@ def uploaded_file(filename):
 #Server Startup (Replaces main())
 if __name__ == "__main__":
     """Start the server"""
-    print(f"BC Bulletin Board Server running on http://localhost:{PORT}")
+    print(f"EagleBoard server running on http://localhost:{PORT}")
     print("Press Ctrl+C to stop the server")
     
     #Running the server

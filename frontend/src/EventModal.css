@@ -59,7 +59,7 @@
 button[type="submit"] {
   width: 100%;
   padding: 0.75rem;
-  background-color: #8a100b; /* BC Maroon */
+  background-color: #8a100b; /* Maroon color to match BC theme */
   color: white;
   border: none;
   border-radius: 4px;
