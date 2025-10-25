@@ -19,11 +19,19 @@ echo "✅ Python and Node.js are installed"
 # Frontend dependencies are already installed with create-react-app
 echo "✅ Frontend ready (created with create-react-app)"
 
+# Install backend dependencies
+echo "🐍 Installing backend dependencies..."
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
 # Start backend
 echo "🚀 Starting backend server..."
-cd backend
-python3 simple_backend.py &
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
+
+deactivate
 
 # Wait a moment for backend to start
 sleep 2

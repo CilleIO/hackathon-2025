@@ -1,184 +1,140 @@
 #!/usr/bin/env python3
 """
-Simple BC Bulletin Board Backend
-A basic Python server that stores events in a JSON file
+BC Bulletin Board Backend
+
+A FastAPI server to manage and display campus events.
 """
 
 import json
 import os
-from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
-import urllib.parse
+from datetime import datetime, timezone
 import uuid
+from typing import List, Optional, Dict
 
-# Configuration
-PORT = 8000
+from fastapi import FastAPI, Form, UploadFile, File, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
+
+# --- Configuration ---
 DATA_FILE = "events.json"
 UPLOAD_DIR = "uploads"
 
 # Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# For parsing multipart/form-data
-import cgi
+app = FastAPI(
+    title="BC Digital Bulletin Board API",
+    description="API for managing campus events.",
+    version="1.1.0",
+)
 
+# --- CORS Middleware ---
+# Allows the frontend (running on localhost:3000) to communicate with the backend.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-class BulletinHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        """Handle GET requests"""
-        if self.path == "/":
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            response = {"message": "BC Digital Bulletin Board", "version": "1.0.0"}
-            self.wfile.write(json.dumps(response).encode())
-            
-        elif self.path == "/events":
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            events = self.get_events()
-            self.wfile.write(json.dumps(events).encode())
-            
-        elif self.path.startswith("/uploads/"):
-            # Serve uploaded files
-            filename = self.path[9:]  # Remove "/uploads/" prefix
-            filepath = os.path.join(UPLOAD_DIR, filename)
-            if os.path.exists(filepath):
-                self.send_response(200)
-                self.send_header('Content-type', 'application/octet-stream')
-                self.end_headers()
-                with open(filepath, 'rb') as f:
-                    self.wfile.write(f.read())
-            else:
-                self.send_response(404)
-                self.end_headers()
-        else:
-            self.send_response(404)
-            self.end_headers()
-    
-    def do_POST(self):
-        """Handle POST requests"""
-        if self.path == "/events":
-            # Use cgi.FieldStorage to parse multipart/form-data
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={'REQUEST_METHOD': 'POST',
-                         'CONTENT_TYPE': self.headers['Content-Type'],
-                         })
+# --- Pydantic Models for Data Validation ---
+class Event(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    event_date: datetime
+    location: str
+    poster_url: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-            # Extract event data
-            title = form.getvalue('title', '')
-            description = form.getvalue('description', '')
-            event_date = form.getvalue('event_date', '')
-            location = form.getvalue('location', '')
-
-            poster_url = None
-            if 'poster' in form:
-                poster_item = form['poster']
-                if poster_item.filename:
-                    # Sanitize filename
-                    sanitized_filename = os.path.basename(poster_item.filename)
-                    # Create a unique filename to avoid overwrites
-                    unique_filename = f"{uuid.uuid4()}_{sanitized_filename}"
-                    filepath = os.path.join(UPLOAD_DIR, unique_filename)
-                    
-                    with open(filepath, 'wb') as f:
-                        f.write(poster_item.file.read())
-                    
-                    poster_url = f"/uploads/{unique_filename}"
-
-            if not all([title, description, event_date, location]):
-                self.send_response(400)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                response = {"error": "Missing required fields"}
-                self.wfile.write(json.dumps(response).encode())
-                return
-            
-            # Create new event
-            event = {
-                "id": str(uuid.uuid4()),
-                "title": title,
-                "description": description,
-                "event_date": event_date,
-                "location": location,
-                "poster_url": poster_url,
-                "created_at": datetime.now().isoformat()
-            }
-            
-            # Save event
-            self.save_event(event)
-            
-            self.send_response(201)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps(event).encode())
-        else:
-            self.send_response(404)
-            self.end_headers()
-    
-    def do_OPTIONS(self):
-        """Handle CORS preflight requests"""
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-    
-    def get_events(self):
-        """Load events from JSON file and filter out past events"""
-        try:
-            with open(DATA_FILE, 'r') as f:
-                events = json.load(f)
-        except FileNotFoundError:
-            return []
-        
-        # Filter out past events
-        now = datetime.now()
-        current_events = []
-        
-        for event in events:
-            try:
-                event_date = datetime.fromisoformat(event['event_date'].replace('Z', '+00:00'))
-                if event_date > now:
-                    current_events.append(event)
-            except:
-                # If date parsing fails, keep the event
-                current_events.append(event)
-        
-        return current_events
-    
-    def save_event(self, event):
-        """Save event to JSON file"""
-        try:
-            with open(DATA_FILE, 'r') as f:
-                events = json.load(f)
-        except FileNotFoundError:
-            events = []
-        
-        events.append(event)
-        
-        with open(DATA_FILE, 'w') as f:
-            json.dump(events, f, indent=2)
-
-def main():
-    """Start the server"""
-    server = HTTPServer(('localhost', PORT), BulletinHandler)
-    print(f"BC Bulletin Board Server running on http://localhost:{PORT}")
-    print("Press Ctrl+C to stop the server")
-    
+# --- Helper Functions for Data Storage ---
+def get_events() -> List[Event]:
+    """Load events from JSON file and filter out past events."""
     try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print("\nServer stopped")
-        server.shutdown()
+        with open(DATA_FILE, 'r') as f:
+            events_data = json.load(f)
+            events = [Event(**e) for e in events_data]
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+    # Filter out past events
+    now = datetime.now(timezone.utc)
+    current_events = [event for event in events if event.event_date > now]
+    
+    # Sort events by date
+    current_events.sort(key=lambda x: x.event_date)
+    
+    return current_events
+
+def save_event(event: Event):
+    """Save a new event to the JSON file."""
+    # Read existing events, excluding past ones
+    events = get_events()
+    events.append(event)
+    
+    # Convert list of Event objects to list of dicts for JSON serialization
+    events_data = [e.model_dump(mode='json') for e in events]
+    
+    with open(DATA_FILE, 'w') as f:
+        json.dump(events_data, f, indent=2)
+
+# --- API Endpoints ---
+@app.get("/", summary="API Health Check")
+def health_check() -> Dict[str, str]:
+    """Provides a simple health check for the API."""
+    return {"message": "BC Digital Bulletin Board API is running", "version": "1.1.0"}
+
+@app.get("/events", response_model=List[Event], summary="Get Upcoming Events")
+def read_events():
+    """Retrieve a list of all upcoming events, sorted by date."""
+    return get_events()
+
+@app.post("/events", response_model=Event, status_code=status.HTTP_201_CREATED, summary="Create a New Event")
+async def create_event(
+    title: str = Form(...),
+    description: str = Form(...),
+    event_date: datetime = Form(...),
+    location: str = Form(...),
+    poster: Optional[UploadFile] = File(None)
+):
+    """
+    Create a new event. Accepts form data, including an optional poster image.
+    """
+    poster_url = None
+    if poster and poster.filename:
+        # Sanitize filename to prevent security issues
+        sanitized_filename = os.path.basename(poster.filename)
+        # Create a unique filename to avoid overwrites
+        unique_filename = f"{uuid.uuid4()}_{sanitized_filename}"
+        filepath = os.path.join(UPLOAD_DIR, unique_filename)
+
+        # Save the uploaded file
+        with open(filepath, "wb") as buffer:
+            buffer.write(await poster.read())
+
+        poster_url = f"/uploads/{unique_filename}"
+
+    new_event = Event(
+        title=title,
+        description=description,
+        event_date=event_date,
+        location=location,
+        poster_url=poster_url,
+    )
+    save_event(new_event)
+    return new_event
+
+@app.get("/uploads/{filename}", summary="Serve an Uploaded Poster")
+async def get_upload(filename: str):
+    """Serves an uploaded event poster from the `uploads` directory."""
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(filepath)
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    print("Starting BC Bulletin Board Server with FastAPI...")
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -47,6 +47,7 @@ hackathon/
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   npm install legacy-cgi
    ```
 
 4. Run the backend server:

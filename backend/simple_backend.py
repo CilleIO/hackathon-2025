@@ -6,177 +6,164 @@ A basic Python server that stores events in a JSON file
 
 import json
 import os
-from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import urllib.parse
 import uuid
-import cgi
+import shutil
+from datetime import datetime
+from typing import Optional
 
-# Configuration
+import uvicorn
+from fastapi import FastAPI, Form, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
+# --- Configuration ---
 PORT = 8000
 DATA_FILE = "events.json"
 UPLOAD_DIR = "uploads"
 
+# --- App Setup ---
 # Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-class BulletinHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        """Handle GET requests"""
-        if self.path == "/":
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            response = {"message": "BC Digital Bulletin Board", "version": "1.0.0"}
-            self.wfile.write(json.dumps(response).encode())
-            
-        elif self.path == "/events":
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            events = self.get_events()
-            self.wfile.write(json.dumps(events).encode())
-            
-        elif self.path.startswith("/uploads/"):
-            # Serve uploaded files
-            filename = self.path[9:]  # Remove "/uploads/" prefix
-            filepath = os.path.join(UPLOAD_DIR, filename)
-            if os.path.exists(filepath):
-                self.send_response(200)
-                self.send_header('Content-type', 'application/octet-stream')
-                self.end_headers()
-                with open(filepath, 'rb') as f:
-                    self.wfile.write(f.read())
-            else:
-                self.send_response(404)
-                self.end_headers()
-        else:
-            self.send_response(404)
-            self.end_headers()
-    
-    def do_POST(self):
-        """Handle POST requests"""
-        if self.path == "/events":
-            # Parse multipart/form-data
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={'REQUEST_METHOD': 'POST',
-                         'CONTENT_TYPE': self.headers['Content-Type']}
-            )
-            
-            # Extract event data from text fields
-            title = form.getvalue('title', '')
-            description = form.getvalue('description', '')
-            event_date = form.getvalue('event_date', '')
-            location = form.getvalue('location', '')
+# Initialize FastAPI app
+app = FastAPI()
 
-            # --- Handle the file upload ---
-            poster_url = None
-            if 'poster' in form and form['poster'].filename:
-                file_item = form['poster']
-                
-                # IMPORTANT: You must decide where to save files.
-                # For a hackathon, saving to a folder is fine.
-                # Ensure an 'uploads' folder exists!
-                upload_path = f"uploads/{file_item.filename}"
-                
-                with open(upload_path, 'wb') as f:
-                    f.write(file_item.file.read())
-                
-                # This URL assumes you are serving the 'uploads' folder
-                poster_url = f"/{upload_path}"
-            
-            if not all([title, description, event_date, location]):
-                self.send_response(400)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                response = {"error": "Missing required fields"}
-                self.wfile.write(json.dumps(response).encode())
-                return
-            
-            # Create new event
-            event = {
-                "id": str(uuid.uuid4()),
-                "title": title,
-                "description": description,
-                "event_date": event_date,
-                "location": location,
-                "poster_url": poster_url,
-                "created_at": datetime.now().isoformat()
-            }
-            
-            # Save event
-            self.save_event(event)
-            
-            self.send_response(201)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps(event).encode())
-        else:
-            self.send_response(404)
-            self.end_headers()
+# --- CORS Middleware (Replaces do_OPTIONS) ---
+# This handles all CORS preflight requests automatically
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# --- Static File Server (Replaces GET /uploads/...) ---
+# This serves all files in the UPLOAD_DIR directory under the /uploads path
+app.mount(f"/{UPLOAD_DIR}", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+
+# --- Helper Functions (Moved from class) ---
+def get_events():
+    """Load events from JSON file and filter out past events"""
+    try:
+        with open(DATA_FILE, 'r') as f:
+            events = json.load(f)
+    except FileNotFoundError:
+        return []
     
-    def do_OPTIONS(self):
-        """Handle CORS preflight requests"""
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
+    # Filter out past events
+    now = datetime.now()
+    current_events = []
     
-    def get_events(self):
-        """Load events from JSON file and filter out past events"""
+    for event in events:
         try:
-            with open(DATA_FILE, 'r') as f:
-                events = json.load(f)
-        except FileNotFoundError:
-            return []
-        
-        # Filter out past events
-        now = datetime.now()
-        current_events = []
-        
-        for event in events:
-            try:
-                event_date = datetime.fromisoformat(event['event_date'].replace('Z', '+00:00'))
-                if event_date > now:
-                    current_events.append(event)
-            except:
-                # If date parsing fails, keep the event
+            # Assuming event_date is ISO format, make it timezone-aware for comparison
+            event_dt = datetime.fromisoformat(event['event_date'].replace('Z', '+00:00'))
+            # Make 'now' aware if event_dt is aware
+            if event_dt.tzinfo:
+                now = datetime.now(event_dt.tzinfo)
+                
+            if event_dt > now:
                 current_events.append(event)
-        
-        return current_events
+        except Exception:
+            # If date parsing fails, keep the event
+            current_events.append(event)
     
-    def save_event(self, event):
-        """Save event to JSON file"""
-        try:
-            with open(DATA_FILE, 'r') as f:
-                events = json.load(f)
-        except FileNotFoundError:
-            events = []
-        
-        events.append(event)
-        
-        with open(DATA_FILE, 'w') as f:
-            json.dump(events, f, indent=2)
+    return current_events
 
-def main():
+def save_event(event):
+    """Save event to JSON file"""
+    try:
+        with open(DATA_FILE, 'r') as f:
+            events = json.load(f)
+    except FileNotFoundError:
+        events = []
+    
+    events.append(event)
+    
+    with open(DATA_FILE, 'w') as f:
+        json.dump(events, f, indent=2)
+
+# --- API Endpoints (Replaces do_GET and do_POST) ---
+
+@app.get("/")
+def read_root():
+    """Handle GET requests for /"""
+    return {"message": "BC Digital Bulletin Board", "version": "1.0.0"}
+
+
+@app.get("/events")
+def read_events():
+    """Handle GET requests for /events"""
+    events = get_events()
+    return events
+
+
+@app.post("/events", status_code=201)
+async def create_event(
+    # FastAPI replaces cgi.FieldStorage.
+    # It uses type hints to parse the form.
+    title: str = Form(),
+    description: str = Form(),
+    event_date: str = Form(),
+    location: str = Form(),
+    poster: Optional[UploadFile] = File(None)
+):
+    """
+    Handle POST requests for /events.
+    FastAPI automatically validates required fields.
+    If 'title', 'description', etc., are missing,
+    it will return a 422 Unprocessable Entity error.
+    """
+    
+    poster_url = None
+    if poster and poster.filename:
+        # Create a unique path to avoid overwriting files
+        # A simple way for a hackathon is to use the original filename
+        # In production, you'd want to sanitize this or use a UUID
+        filename = poster.filename
+        upload_path = os.path.join(UPLOAD_DIR, filename)
+        
+        # Save the file
+        try:
+            with open(upload_path, "wb") as buffer:
+                shutil.copyfileobj(poster.file, buffer)
+        except Exception as e:
+            # Handle file save error
+            raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+        finally:
+            poster.file.close()
+        
+        # This URL must match the StaticFiles mount path
+        poster_url = f"/{UPLOAD_DIR}/{filename}"
+
+    # Create new event
+    event = {
+        "id": str(uuid.uuid4()),
+        "title": title,
+        "description": description,
+        "event_date": event_date,
+        "location": location,
+        "poster_url": poster_url,
+        "created_at": datetime.now().isoformat()
+    }
+    
+    # Save event
+    save_event(event)
+    
+    # Return the created event (FastAPI handles JSON conversion)
+    return event
+
+
+# --- Server Startup (Replaces main()) ---
+if __name__ == "__main__":
     """Start the server"""
-    server = HTTPServer(('localhost', PORT), BulletinHandler)
     print(f"BC Bulletin Board Server running on http://localhost:{PORT}")
     print("Press Ctrl+C to stop the server")
     
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print("\nServer stopped")
-        server.shutdown()
-
-if __name__ == "__main__":
-    main()
+    # uvicorn.run() replaces HTTPServer
+    # "fastapi_backend:app" refers to the 'app' object in the file 'fastapi_backend.py'
+    # Set reload=True for auto-restarting the server on code changes
+    uvicorn.run("simple_backend:app", host="localhost", port=PORT, reload=True)
