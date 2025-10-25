@@ -2,8 +2,8 @@
 .app {
   min-height: 100vh;
   background: linear-gradient(135deg, #8B0000 0%, #A52A2A 100%);
-  color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  color: white;
 }
 
 .header {
@@ -69,6 +69,53 @@
 .no-events p {
   font-size: 1.3rem;
   opacity: 0.9;
+}
+
+/* Event Grid and Card Styles */
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.event-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+}
+
+.event-card h2 {
+  color: #FFD700;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.event-poster {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.event-date, .event-location {
+  font-weight: bold;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.event-description {
+  opacity: 0.8;
+  line-height: 1.4;
 }
 
 /* Responsive design */

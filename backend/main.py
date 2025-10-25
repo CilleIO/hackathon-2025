@@ -7,7 +7,7 @@ A basic Python server that stores events in a JSON file
 import json
 import os
 from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 import urllib.parse
 import uuid
 
@@ -18,6 +18,10 @@ UPLOAD_DIR = "uploads"
 
 # Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# For parsing multipart/form-data
+import cgi
+
 
 class BulletinHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -59,18 +63,35 @@ class BulletinHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Handle POST requests"""
         if self.path == "/events":
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
-            # Parse form data
-            form_data = urllib.parse.parse_qs(post_data.decode())
-            
+            # Use cgi.FieldStorage to parse multipart/form-data
+            form = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={'REQUEST_METHOD': 'POST',
+                         'CONTENT_TYPE': self.headers['Content-Type'],
+                         })
+
             # Extract event data
-            title = form_data.get('title', [''])[0]
-            description = form_data.get('description', [''])[0]
-            event_date = form_data.get('event_date', [''])[0]
-            location = form_data.get('location', [''])[0]
-            
+            title = form.getvalue('title', '')
+            description = form.getvalue('description', '')
+            event_date = form.getvalue('event_date', '')
+            location = form.getvalue('location', '')
+
+            poster_url = None
+            if 'poster' in form:
+                poster_item = form['poster']
+                if poster_item.filename:
+                    # Sanitize filename
+                    sanitized_filename = os.path.basename(poster_item.filename)
+                    # Create a unique filename to avoid overwrites
+                    unique_filename = f"{uuid.uuid4()}_{sanitized_filename}"
+                    filepath = os.path.join(UPLOAD_DIR, unique_filename)
+                    
+                    with open(filepath, 'wb') as f:
+                        f.write(poster_item.file.read())
+                    
+                    poster_url = f"/uploads/{unique_filename}"
+
             if not all([title, description, event_date, location]):
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
@@ -87,7 +108,7 @@ class BulletinHandler(BaseHTTPRequestHandler):
                 "description": description,
                 "event_date": event_date,
                 "location": location,
-                "poster_url": None,
+                "poster_url": poster_url,
                 "created_at": datetime.now().isoformat()
             }
             
