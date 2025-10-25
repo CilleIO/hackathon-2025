@@ -28,7 +28,7 @@ pip install -r requirements.txt
 
 # Start backend
 echo "🚀 Starting backend server..."
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+python3 main.py &
 BACKEND_PID=$!
 
 deactivate

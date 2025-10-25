@@ -1,3 +1,2 @@
-fastapi[all]
-uvicorn[standard]
-python-multipart
+Flask
+Flask-Cors
