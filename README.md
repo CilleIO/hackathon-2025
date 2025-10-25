@@ -4,12 +4,12 @@ A simple digital bulletin board for Boston College campus events. This MVP allow
 
 ## Features
 
-- ✅ **Simple Event Creation**: Click "Add Event" button to create new events
-- ✅ **Custom Posters**: Upload images for event flyers/posters
-- ✅ **Event Details**: Title, description, date/time, and location
-- ✅ **Automatic Cleanup**: Past events are automatically filtered out
-- ✅ **Responsive Design**: Works on desktop and mobile
-- ✅ **BC Branding**: Maroon and gold color scheme
+- **Simple Event Creation**: Click "Add Event" button to create new events
+- **Custom Posters**: Upload images for event flyers/posters
+- **Event Details**: Title, description, date/time, and location
+- **Automatic Cleanup**: Past events are automatically filtered out
+- **Responsive Design**: Works on desktop and mobile
+- **BC Branding**: Maroon and gold color scheme
 
 ## Project Structure
 
@@ -121,7 +121,7 @@ hackathon/
 
 ## Development Checklist
 
-### ✅ Completed Features
+### Completed Features
 - [x] FastAPI backend with SQLite database
 - [x] React frontend with TypeScript
 - [x] Event creation form with validation
@@ -133,7 +133,7 @@ hackathon/
 - [x] File upload handling
 - [x] Error handling and loading states
 
-### 🔄 Future Enhancements
+### Future Enhancements
 - [ ] User authentication system
 - [ ] Event categories and filtering
 - [ ] Search functionality

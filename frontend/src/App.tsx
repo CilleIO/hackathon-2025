@@ -38,7 +38,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>🏛️ BC Digital Bulletin Board</h1>
+        <h1>BC Digital Bulletin Board</h1>
         <button className="add-event-btn" onClick={() => setIsModalOpen(true)}>
           + Add Event
         </button>
