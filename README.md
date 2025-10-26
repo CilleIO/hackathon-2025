@@ -1,6 +1,6 @@
 # EagleBoard - BC Digital Bulletin Board
 
-A digital bulletin board for Boston College campus events. Students can post events with custom flyers and the system prevents creating past events.
+A digital bulletin board for Boston College campus events. Students or organizations can post events with custom flyers all in one centralized place.
 
 ## What it does
 
