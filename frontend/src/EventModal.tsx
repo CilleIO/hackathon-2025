@@ -2,17 +2,10 @@
  * EventModal Component
  * 
  * A React modal component for creating new campus events in the BC Digital Bulletin Board.
- * This component handles event creation with form validation, file uploads, and API integration.
- * 
- * Features:
- * - Form validation for required fields
- * - File upload for event posters
- * - Loading states during submission
- * - Error handling and user feedback
- * - Responsive modal design
+ * This component handles event creation, file uploads, and API integration.
  */
 
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import axios from 'axios';
 import './EventModal.css';
 
@@ -20,9 +13,9 @@ import './EventModal.css';
  * Props interface for EventModal component
  * 
  * @interface EventModalProps
- * @property {boolean} isOpen - Controls modal visibility
- * @property {() => void} onClose - Callback to close the modal
- * @property {() => void} onEventAdded - Callback triggered after successful event creation
+ * @property {boolean} isOpen 
+ * @property {() => void} onClose 
+ * @property {() => void} onEventAdded 
  */
 interface EventModalProps {
   isOpen: boolean;
@@ -36,13 +29,6 @@ const API_URL = 'http://localhost:8000';
 /**
  * EventModal Component
  * 
- * A modal dialog for creating new campus events with the following functionality:
- * - Form state management for all event fields
- * - File upload handling for event posters
- * - Form validation and error display
- * - API integration with the Flask backend
- * - Loading states and user feedback
- * 
  * @param {EventModalProps} props - Component props
  * @returns {JSX.Element | null} Modal component or null if not open
  */
@@ -55,6 +41,18 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventAdded }
   const [poster, setPoster] = useState<File | null>(null); // Uploaded poster file
   const [error, setError] = useState('');            // Error message display
   const [isSubmitting, setIsSubmitting] = useState(false); // Loading state
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setTitle('');
+      setDescription('');
+      setEventDate('');
+      setLocation('');
+      setPoster(null);
+      setError('');
+    }
+  }, [isOpen]);
 
   // Early return if modal is not open - improves performance
   if (!isOpen) {
@@ -79,7 +77,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventAdded }
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    // Client-side validation for required fields
+    // Required fields validation
     if (!title || !description || !eventDate || !location) {
       setError('All fields except poster are required.');
       return;
@@ -94,7 +92,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventAdded }
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
-    formData.append('event_date', new Date(eventDate).toISOString()); // Convert to ISO format
+    formData.append('event_date', new Date(eventDate).toISOString()); 
     formData.append('location', location);
     
     // Add poster file if one was selected
@@ -112,11 +110,26 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventAdded }
       
       // Success: refresh events list and close modal
       onEventAdded(); // Trigger parent component to refresh events
+      
+      // Reset form state
+      setTitle('');
+      setDescription('');
+      setEventDate('');
+      setLocation('');
+      setPoster(null);
+      setError('');
+      
       onClose();     // Close the modal
-    } catch (err) {
-      // Error handling: log error and show user-friendly message
+    } catch (err: any) {
+      // Error handling: log error and show specific message
       console.error('Failed to add event:', err);
-      setError('Failed to submit event. Please try again.');
+      
+      // Show specific error message from backend if available
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError('Failed to submit event. Please try again.');
+      }
     } finally {
       // Always reset loading state
       setIsSubmitting(false);
@@ -126,8 +139,8 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventAdded }
   
    //Render the modal component
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         {/* Modal header with title and close button */}
         <h2>Add New Event</h2>
         <button onClick={onClose} className="close-button">&times;</button>

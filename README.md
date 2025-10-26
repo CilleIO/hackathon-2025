@@ -1,176 +1,146 @@
-# BC Digital Bulletin Board MVP
+# EagleBoard - BC Digital Bulletin Board
 
-A simple digital bulletin board for Boston College campus events. This MVP allows users to add events with custom posters and automatically removes past events.
+A digital bulletin board for Boston College campus events. Students can post events with custom flyers and the system automatically removes outdated events.
 
-## Features
+## What it does
 
-- **Simple Event Creation**: Click "Add Event" button to create new events
-- **Custom Posters**: Upload images for event flyers/posters
-- **Event Details**: Title, description, date/time, and location
-- **Automatic Cleanup**: Past events are automatically filtered out
-- **Responsive Design**: Works on desktop and mobile
-- **BC Branding**: Maroon and gold color scheme
+- **Post Events**: Click "Add Event" to create campus event posts
+- **Upload Flyers**: Add custom images for your event posters
+- **Event Info**: Include title, description, date/time, and location
+- **Auto Cleanup**: Past events disappear automatically
+- **Mobile Friendly**: Works on phones and computers
+- **BC Colors**: Maroon and gold theme
 
 ## Project Structure
 
 ```
 hackathon/
 ├── backend/
-│   ├── main.py              # FastAPI backend
-│   └── requirements.txt     # Python dependencies
+│   ├── simple_backend.py   # Python backend server
+│   └── events.json         # Event data storage
 ├── frontend/
-│   ├── index.html           # HTML template for Vite
 │   ├── src/
 │   │   ├── App.tsx         # Main React component
 │   │   ├── App.css         # Styling
-│   │   └── index.tsx       # React entry point
-│   └── package.json        # Node.js dependencies
-│   └── vite.config.ts     # Vite configuration
+│   │   ├── EventModal.tsx  # Event creation form
+│   │   └── index.tsx       # App entry point
+│   └── package.json        # Dependencies
+├── start.sh               # Quick start script
 └── README.md              # This file
 ```
 
-## Setup Instructions
+## Quick Start
 
-### Backend Setup
+The easiest way to get everything running:
 
-1. Navigate to the backend directory:
+```bash
+./start.sh
+```
+
+This will start both the backend and frontend servers automatically.
+
+## Manual Setup
+
+### Backend
+
+1. Go to the backend folder:
+
    ```bash
    cd backend
    ```
 
-2. Create a virtual environment (recommended):
+2. Run the server:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python3 simple_backend.py
    ```
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   npm install rsbuild
-   ```
+The backend runs on `http://localhost:8000`
 
-4. Run the backend server:
-   ```bash
-   python main.py
-   ```
+### Frontend
 
-   The API will be available at `http://localhost:8000`
+1. Go to the frontend folder:
 
-### Frontend Setup
-
-1. Navigate to the frontend directory:
    ```bash
    cd frontend
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
-3. Start the development server:
+3. Start the app:
    ```bash
-   npm run dev
+   npm start
    ```
 
-   The app will be available at `http://localhost:3000`
+The app opens at `http://localhost:3000`
 
-## How to Use
+## How it works
 
-1. **View Events**: The main page displays all upcoming events in a grid layout
-2. **Add Event**: Click the "Add Event" button in the top-right corner
-3. **Fill Form**: Complete the event form with:
-   - Event title (required)
-   - Description (required)
-   - Date and time (required)
-   - Location (required)
-   - Poster image (optional)
-4. **Submit**: Click "Add Event" to post to the bulletin board
-5. **Automatic Cleanup**: Past events are automatically removed from the display
+1. **View Events**: See all upcoming events on the main page
+2. **Add Event**: Click "Add Event" button in the top-right
+3. **Fill Out Form**: Enter event details and optionally upload a poster image
+4. **Submit**: Click "Add Event" to post it to the board
+5. **Auto Removal**: Events automatically disappear after their date passes
 
-## API Endpoints
+## API
 
-- `GET /events` - Retrieve all upcoming events
+- `GET /events` - Get all upcoming events
 - `POST /events` - Create a new event
-- `DELETE /events/{id}` - Delete an event
-- `GET /` - API health check
+- `GET /` - Health check
 
-## Technical Details
+## Tech Stack
 
 ### Backend
-- **Framework**: FastAPI
-- **Database**: SQLite with SQLAlchemy ORM
-- **File Storage**: Local file system for uploaded images
-- **CORS**: Configured for React development server
+
+- **Language**: Python 3
+- **Server**: Built-in http.server (no external dependencies)
+- **Storage**: JSON file for events, local files for images
+- **CORS**: Handles cross-origin requests
 
 ### Frontend
+
 - **Framework**: React with TypeScript
 - **Styling**: Custom CSS with BC branding
-- **HTTP Client**: Axios for API calls
-- **Date Handling**: date-fns library
+- **HTTP**: Axios for API calls
+- **Build**: Create React App
 
-### Database Schema
-- **Events Table**:
-  - `id` (Primary Key)
-  - `title` (String)
-  - `description` (Text)
-  - `event_date` (DateTime)
-  - `location` (String)
-  - `poster_url` (String, optional)
-  - `created_at` (DateTime)
+## What's Done
 
-## Development Checklist
+- [x] Simple Python backend (no dependencies needed)
+- [x] React frontend with event display
+- [x] Event creation form with file upload
+- [x] Image storage and display
+- [x] Automatic past event removal
+- [x] Responsive design
+- [x] BC maroon/gold styling
+- [x] Error handling
+- [x] Loading states
 
-### Completed Features
-- [x] FastAPI backend with SQLite database
-- [x] React frontend with TypeScript
-- [x] Event creation form with validation
-- [x] Image upload for event posters
-- [x] Event display in grid layout
-- [x] Automatic filtering of past events
-- [x] Responsive design for mobile/desktop
-- [x] BC-themed styling (maroon/gold)
-- [x] File upload handling
-- [x] Error handling and loading states
+## Future Ideas
 
-### Future Enhancements
-- [ ] User authentication system
-- [ ] Event categories and filtering
-- [ ] Search functionality
-- [ ] Event approval workflow
+- [ ] User accounts and login
+- [ ] Event categories (academic, social, etc.)
+- [ ] Search and filter events
+- [ ] Event approval system
 - [ ] Push notifications
-- [ ] Integration with BC systems (Agora Portal)
-- [ ] Event analytics and insights
-- [ ] Mobile app development
-- [ ] Social sharing features
-- [ ] Event RSVP functionality
+- [ ] Integration with BC systems
+- [ ] Event analytics
+- [ ] Mobile app
+- [ ] Social sharing
+- [ ] RSVP functionality
 
-## Troubleshooting
+## Common Issues
 
-### Common Issues
+**Backend won't start**: Make sure port 8000 isn't already in use
+**Frontend won't connect**: Check that backend is running on port 8000  
+**Images not showing**: Make sure the `uploads` folder exists
+**CORS errors**: Backend should handle this automatically
 
-1. **Backend not starting**: Ensure all dependencies are installed and port 8000 is available
-2. **Frontend not connecting**: Check that the backend is running on port 8000
-3. **Image upload issues**: Ensure the `uploads` directory exists and has proper permissions
-4. **CORS errors**: Verify the backend CORS settings include `http://localhost:3000`
+## Notes
 
-### File Permissions
-Make sure the `uploads` directory has write permissions:
-```bash
-chmod 755 uploads/
-```
+This is a hackathon MVP built for simplicity. For a real production app, you'd want to add proper authentication, input validation, tests, and better deployment setup.
 
-## Contributing
-
-This is an MVP for a hackathon project. For production use, consider:
-- Adding proper authentication
-- Implementing input validation
-- Adding unit tests
-- Setting up proper deployment
-- Adding monitoring and logging
-- Implementing proper error handling
-
-## License
-
-This project is created for educational purposes as part of a hackathon.
+Built for the BC community! 🦅

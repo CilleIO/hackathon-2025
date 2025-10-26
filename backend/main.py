@@ -65,25 +65,46 @@ def save_event(event):
 
 #api endpoints 
 
-@app.get("/")
+@app.route("/", methods=['GET'])
 def root():
     #shows current version for user
     return {"message": "EagleBoard", "version": "1.0.0"}
 
 
-@app.get("/events")
+@app.route("/events", methods=['GET'])
 def get_all_events():
     events = get_events()
     return jsonify(events)
 
 
-@app.post("/events")
+@app.route("/events", methods=['POST'])
 def create_event():
     #requesting necessary information for an event (title,description,date, and location)
     title = request.form.get('title')
     description = request.form.get('description')
     event_date = request.form.get('event_date')
     location = request.form.get('location')
+    
+    #validate required fields
+    if not title or not description or not event_date or not location:
+        return jsonify({"error": "All fields are required"}), 400
+    
+    #validate that event date is not in the past
+    try:
+        # Handle both Z and +00:00 timezone formats
+        if event_date.endswith('Z'):
+            event_dt = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
+        else:
+            event_dt = datetime.fromisoformat(event_date)
+        
+        # Make both datetimes timezone-aware for comparison
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        
+        if event_dt <= now:
+            return jsonify({"error": "Event date must be in the future"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Invalid date format: {str(e)}"}), 400
     
     #creating a unique upload for the folder to avoid overwrites
     poster_url = None
