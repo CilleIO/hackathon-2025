@@ -11,30 +11,30 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-#Configuration for server
+#configuration for server
 PORT = 8000
 DATA_FILE = "events.json"
 UPLOAD_DIR = "uploads"
 
-#Create uploads directory if it doesn't exist
+#create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-#Initialize Flask app
+#initialize Flask app
 app = Flask(__name__)
 
-#PROVIDE EXPLANNATION 
+#provide explannation 
 CORS(app)
 
-#Helper Functions -
+#helper functions -
 def get_events():
-    #Load events from JSON file 
+    #load events from JSON file 
     try:
         with open(DATA_FILE, 'r') as f:
             events = json.load(f)
     except FileNotFoundError:
-        return [] # Return empty list if file doesn't exist
+        return [] #return empty list if file doesn't exist
     
-    #Filter out past events using try and except statements
+    #filter out past events using try and except statements
     now = datetime.now()
     current_events = []
     
@@ -45,13 +45,13 @@ def get_events():
             if event_dt > now:
                 current_events.append(event)
         except Exception:
-            #If date parsing fails, keep the event
+            #if date parsing fails, keep the event
             current_events.append(event)
     
     return current_events
 
 def save_event(event):
-    #Saving event to a Jason file
+    #saving event data to a JSON file
     try:
         with open(DATA_FILE, 'r') as f:
             events = json.load(f)
@@ -63,11 +63,11 @@ def save_event(event):
     with open(DATA_FILE, 'w') as f:
         json.dump(events, f, indent=2)
 
-#API Endpoints 
+#api endpoints 
 
 @app.get("/")
 def root():
-    #Shows current version for user
+    #shows current version for user
     return {"message": "EagleBoard", "version": "1.0.0"}
 
 
@@ -79,30 +79,30 @@ def get_all_events():
 
 @app.post("/events")
 def create_event():
-    #Requesting necessary information for an event (title,description,date, and location)
+    #requesting necessary information for an event (title,description,date, and location)
     title = request.form.get('title')
     description = request.form.get('description')
     event_date = request.form.get('event_date')
     location = request.form.get('location')
     
-    #creating an unique upload for the folder 
+    #creating a unique upload for the folder to avoid overwrites
     poster_url = None
     if 'poster' in request.files:
         poster_file = request.files['poster']
         if poster_file.filename:
-            #Use a secure filename to prevent path traversal issues
+            #use a secure filename to prevent path traversal issues
             filename = secure_filename(poster_file.filename)
-            #Create a unique filename to avoid overwrites
+            #create a unique filename to avoid overwrites
             unique_filename = f"{uuid.uuid4()}_{filename}"
             upload_path = os.path.join(UPLOAD_DIR, unique_filename)
             
-            #Save the file
+            #save the file
             poster_file.save(upload_path)
         
-            #This URL must match the static file serving endpoint
+            #this URL must match the static file serving endpoint
             poster_url = f"/uploads/{unique_filename}"
 
-    #Create new event as a dictionary
+    #create new event as a dictionary
     event = {
         "id": str(uuid.uuid4()),
         "title": title,
@@ -115,19 +115,19 @@ def create_event():
     
     save_event(event)
     
-    #Return the created event with a 201 status code (means its good)
+    #return the created event with a 201 status code (means its good)
     return jsonify(event), 201
 
 @app.route('/uploads/<filename>')
-#Uploading file from current directory, not anywhere else
+#uploading file from current directory, not anywhere else
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_DIR, filename)
 
-#Server Startup (Replaces main())
+#server startup (replaces main())
 if __name__ == "__main__":
     """Start the server"""
     print(f"EagleBoard server running on http://localhost:{PORT}")
     print("Press Ctrl+C to stop the server")
     
-    #Running the server
+    #running the server
     app.run(host="0.0.0.0", port=PORT, debug=False)
