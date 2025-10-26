@@ -1,13 +1,13 @@
 # EagleBoard - BC Digital Bulletin Board
 
-A digital bulletin board for Boston College campus events. Students can post events with custom flyers and the system automatically removes outdated events.
+A digital bulletin board for Boston College campus events. Students can post events with custom flyers and the system prevents creating past events.
 
 ## What it does
 
 - **Post Events**: Click "Add Event" to create campus event posts
 - **Upload Flyers**: Add custom images for your event posters
 - **Event Info**: Include title, description, date/time, and location
-- **Auto Cleanup**: Past events disappear automatically
+- **Past Event Prevention**: System blocks creation of events with past dates
 - **Mobile Friendly**: Works on phones and computers
 - **BC Colors**: Maroon and gold theme
 
@@ -16,8 +16,10 @@ A digital bulletin board for Boston College campus events. Students can post eve
 ```
 hackathon/
 ├── backend/
-│   ├── simple_backend.py   # Python backend server
-│   └── events.json         # Event data storage
+│   ├── main.py             # Flask backend server
+│   ├── events.json         # Event data storage
+│   ├── uploads/            # Image storage (ignored by git)
+│   └── venv/               # Python virtual environment
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx         # Main React component
@@ -25,21 +27,11 @@ hackathon/
 │   │   ├── EventModal.tsx  # Event creation form
 │   │   └── index.tsx       # App entry point
 │   └── package.json        # Dependencies
-├── start.sh               # Quick start script
+├── .gitignore              # Git ignore rules
 └── README.md              # This file
 ```
 
 ## Quick Start
-
-The easiest way to get everything running:
-
-```bash
-./start.sh
-```
-
-This will start both the backend and frontend servers automatically.
-
-## Manual Setup
 
 ### Backend
 
@@ -49,9 +41,15 @@ This will start both the backend and frontend servers automatically.
    cd backend
    ```
 
-2. Run the server:
+2. Activate virtual environment:
+
    ```bash
-   python3 simple_backend.py
+   source venv/bin/activate
+   ```
+
+3. Start the server:
+   ```bash
+   python3 main.py
    ```
 
 The backend runs on `http://localhost:8000`
@@ -83,7 +81,7 @@ The app opens at `http://localhost:3000`
 2. **Add Event**: Click "Add Event" button in the top-right
 3. **Fill Out Form**: Enter event details and optionally upload a poster image
 4. **Submit**: Click "Add Event" to post it to the board
-5. **Auto Removal**: Events automatically disappear after their date passes
+5. **Validation**: System prevents creating events with past dates
 
 ## API
 
@@ -96,9 +94,10 @@ The app opens at `http://localhost:3000`
 ### Backend
 
 - **Language**: Python 3
-- **Server**: Built-in http.server (no external dependencies)
+- **Framework**: Flask with Flask-CORS
 - **Storage**: JSON file for events, local files for images
-- **CORS**: Handles cross-origin requests
+- **Validation**: Prevents past event creation
+- **File Upload**: Handles image uploads with unique filenames
 
 ### Frontend
 
@@ -106,18 +105,20 @@ The app opens at `http://localhost:3000`
 - **Styling**: Custom CSS with BC branding
 - **HTTP**: Axios for API calls
 - **Build**: Create React App
+- **Modal**: Event creation form with validation
 
 ## What's Done
 
-- [x] Simple Python backend (no dependencies needed)
+- [x] Flask backend with virtual environment
 - [x] React frontend with event display
 - [x] Event creation form with file upload
 - [x] Image storage and display
-- [x] Automatic past event removal
+- [x] Past event validation (prevents creation)
+- [x] Form validation and error handling
 - [x] Responsive design
 - [x] BC maroon/gold styling
-- [x] Error handling
-- [x] Loading states
+- [x] Modal close functionality
+- [x] Git ignore for uploads
 
 ## Future Ideas
 
@@ -134,10 +135,12 @@ The app opens at `http://localhost:3000`
 
 ## Common Issues
 
-**Backend won't start**: Make sure port 8000 isn't already in use
+**Backend won't start**: Make sure port 8000 isn't already in use and virtual environment is activated
+**Flask not found**: Run `source venv/bin/activate` in the backend directory
 **Frontend won't connect**: Check that backend is running on port 8000  
 **Images not showing**: Make sure the `uploads` folder exists
-**CORS errors**: Backend should handle this automatically
+**Past event error**: System prevents creating events with past dates - use future dates only
+**Modal won't close**: Try clicking outside the modal or the X button
 
 ## Notes
 
