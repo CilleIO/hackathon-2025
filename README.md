@@ -122,7 +122,7 @@ The app opens at `http://localhost:3000`
 
 ## Future Ideas
 
-- [ ] User accounts and login
+- [ ] User accounts and login for BC organizations
 - [ ] Event categories (academic, social, etc.)
 - [ ] Search and filter events
 - [ ] Event approval system
