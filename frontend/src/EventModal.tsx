@@ -1,95 +1,201 @@
+/**
+ * EventModal Component
+ * 
+ * A React modal component for creating new campus events in the BC Digital Bulletin Board.
+ * This component handles event creation with form validation, file uploads, and API integration.
+ * 
+ * Features:
+ * - Form validation for required fields
+ * - File upload for event posters
+ * - Loading states during submission
+ * - Error handling and user feedback
+ * - Responsive modal design
+ */
+
 import React, { useState, FormEvent } from 'react';
 import axios from 'axios';
 import './EventModal.css';
 
+/**
+ * Props interface for EventModal component
+ * 
+ * @interface EventModalProps
+ * @property {boolean} isOpen - Controls modal visibility
+ * @property {() => void} onClose - Callback to close the modal
+ * @property {() => void} onEventAdded - Callback triggered after successful event creation
+ */
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEventAdded: () => void;
 }
 
+// Backend API endpoint for event management
 const API_URL = 'http://localhost:8000';
 
+/**
+ * EventModal Component
+ * 
+ * A modal dialog for creating new campus events with the following functionality:
+ * - Form state management for all event fields
+ * - File upload handling for event posters
+ * - Form validation and error display
+ * - API integration with the Flask backend
+ * - Loading states and user feedback
+ * 
+ * @param {EventModalProps} props - Component props
+ * @returns {JSX.Element | null} Modal component or null if not open
+ */
 const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventAdded }) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [eventDate, setEventDate] = useState('');
-  const [location, setLocation] = useState('');
-  const [poster, setPoster] = useState<File | null>(null);
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Form state management - each field has its own state
+  const [title, setTitle] = useState('');           // Event title
+  const [description, setDescription] = useState(''); // Event description
+  const [eventDate, setEventDate] = useState('');   // Event date and time
+  const [location, setLocation] = useState('');     // Event location
+  const [poster, setPoster] = useState<File | null>(null); // Uploaded poster file
+  const [error, setError] = useState('');            // Error message display
+  const [isSubmitting, setIsSubmitting] = useState(false); // Loading state
 
+  // Early return if modal is not open - improves performance
   if (!isOpen) {
     return null;
   }
 
+  /**
+   * Handles file input changes for poster uploads
+   * 
+   * @param {React.ChangeEvent<HTMLInputElement>} e - File input change event
+   */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setPoster(e.target.files[0]);
     }
   };
 
+  /**
+   * Handles form submission for event creation
+   * @param {FormEvent} e - Form submission event
+   */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Client-side validation for required fields
     if (!title || !description || !eventDate || !location) {
       setError('All fields except poster are required.');
       return;
     }
+    
+    // Clear previous errors and set loading state
     setError('');
     setIsSubmitting(true);
 
+    // Create FormData object for multipart form submission
+    // This allows us to send both text data and file uploads
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
-    formData.append('event_date', new Date(eventDate).toISOString());
+    formData.append('event_date', new Date(eventDate).toISOString()); // Convert to ISO format
     formData.append('location', location);
+    
+    // Add poster file if one was selected
     if (poster) {
       formData.append('poster', poster);
     }
 
     try {
+      // Send POST request to backend API
       await axios.post(`${API_URL}/events`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'multipart/form-data', // Required for file uploads
         },
       });
-      onEventAdded(); // Refresh events list
-      onClose(); // Close modal
+      
+      // Success: refresh events list and close modal
+      onEventAdded(); // Trigger parent component to refresh events
+      onClose();     // Close the modal
     } catch (err) {
+      // Error handling: log error and show user-friendly message
       console.error('Failed to add event:', err);
       setError('Failed to submit event. Please try again.');
     } finally {
+      // Always reset loading state
       setIsSubmitting(false);
     }
   };
 
+  
+   //Render the modal component
   return (
     <div className="modal-overlay">
       <div className="modal-content">
+        {/* Modal header with title and close button */}
         <h2>Add New Event</h2>
         <button onClick={onClose} className="close-button">&times;</button>
+        
+        {/* Event creation form */}
         <form onSubmit={handleSubmit}>
+          {}
           {error && <p className="error-message">{error}</p>}
+          
+          {/* Event title input */}
           <div className="form-group">
             <label htmlFor="title">Title</label>
-            <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <input 
+              id="title" 
+              type="text" 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              required 
+            />
           </div>
+          
+          {/* Event description textarea */}
           <div className="form-group">
             <label htmlFor="description">Description</label>
-            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required />
+            <textarea 
+              id="description" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              required 
+            />
           </div>
+          
+          {/* Event date and time input */}
           <div className="form-group">
             <label htmlFor="event_date">Date and Time</label>
-            <input id="event_date" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required />
+            <input 
+              id="event_date" 
+              type="datetime-local" 
+              value={eventDate} 
+              onChange={(e) => setEventDate(e.target.value)} 
+              required 
+            />
           </div>
+          
+          {/* Event location input */}
           <div className="form-group">
             <label htmlFor="location">Location</label>
-            <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} required />
+            <input 
+              id="location" 
+              type="text" 
+              value={location} 
+              onChange={(e) => setLocation(e.target.value)} 
+              required 
+            />
           </div>
+          
+          {/* Optional poster image upload */}
           <div className="form-group">
             <label htmlFor="poster">Poster Image</label>
-            <input id="poster" type="file" accept="image/*" onChange={handleFileChange} />
+            <input 
+              id="poster" 
+              type="file" 
+              accept="image/*" 
+              onChange={handleFileChange} 
+            />
           </div>
+          
+          {/* Submit button with loading state */}
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Submitting...' : 'Add Event'}
           </button>
